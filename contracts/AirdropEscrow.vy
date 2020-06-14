@@ -223,7 +223,7 @@ def withdraw(_value: uint256):
 
 @private
 @constant
-def _calc_claim(_sender: address, _token: address) -> (int128, int128, uint256):
+def _calc_claim(_sender: address, _token: address, read_only: bool = False) -> (int128, int128, uint256):
     _token_epoch: int128 = self.token_epoch[_token]
     earned: uint256 = 0
     max_token_cursor: int128 = self.token_epoch[_token]
@@ -233,6 +233,7 @@ def _calc_claim(_sender: address, _token: address) -> (int128, int128, uint256):
     epoch_user: int128 = self.user_epochs[_sender][cursor_u]
     epoch_token: int128 = self.token_epochs[_token][cursor_t]
     rate: uint256 = 0
+    user_balance: uint256 = 0
     old_rate_cursor: int128 = -1
     old_balance_cursor: int128 = -1
     cursor_epoch: int128 = min(epoch_user, epoch_token)
@@ -252,7 +253,7 @@ def _calc_claim(_sender: address, _token: address) -> (int128, int128, uint256):
                 old_rate_cursor = cursor_t - 1
 
         # Balance for the current dt
-        user_balance: uint256 = 0  # Value for epoch_user == 0
+        user_balance = 0  # Value for epoch_user == 0
         if epoch_user > 0:
             if epoch_user < epoch_token:
                 if cursor_u != old_balance_cursor:
@@ -297,7 +298,27 @@ def _calc_claim(_sender: address, _token: address) -> (int128, int128, uint256):
         if finish_loop:
             break
 
+    if read_only:
+        dI: uint256 = (self.integral_inv_supply[self.epoch] - I0)
+        dI += 10 ** 36 * (as_unitless_number(block.timestamp) - self.epoch_time[self.epoch]) / self.totalSupply
+        earned += ((dI * rate) / 10 ** 18) * user_balance / 10 ** 18
+
     return cursor_t, cursor_u, earned
+
+
+@public
+@constant
+def balanceOfAirdrop(_token: address, _user: address) -> uint256:
+    """
+    @dev _Approximate_ calculation of what amount can be claimed. Use for information only!
+    """
+    if self.token_epoch[_token] > 0 or self.user_epoch[msg.sender] > 0:
+        return 0
+    cursor_t: int128 = 0
+    cursor_u: int128 = 0
+    earned: uint256 = 0
+    cursor_t, cursor_u, earned = self._calc_claim(_user, _token, True)
+    return earned
 
 
 @public
@@ -324,6 +345,7 @@ def claim(_token: address):
     if earned > 0:
         self.claimed_token_of[msg.sender][_token] += earned
         ERC20(_token).transfer(msg.sender, earned)
+        # XXX Event
 
 
 @public
@@ -359,6 +381,7 @@ def remove_token(i: int128):
     self.n_tokens = n
 
 
-# XXX TODO claim from the pool (everyone can)
-# XXX TODO calculate claim amount without executing
+# XXX recheck events
+# XXX add checking if this token is deposited in a balanceOf escrow itself
+# XXX claim from the pool at checkpoint before checking our balanceOf
 # XXX TODO tests
