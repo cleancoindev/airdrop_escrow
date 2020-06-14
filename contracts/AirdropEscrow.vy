@@ -221,23 +221,16 @@ def withdraw(_value: uint256):
     ERC20(self.wrapped_token).transfer(msg.sender, _value)
 
 
-@public
-@nonreentrant('lock')
-def claim(_token: address):
-    """
-    @dev Claim all the airdropped tokens
-    @param _token Token address
-    """
-    assert self.token_epoch[_token] > 0, "Airdrops in this token are not yet received"
-    assert self.user_epoch[msg.sender] > 0, "User must have some deposits"
-    self._checkpoint([msg.sender, ZERO_ADDRESS])
+@private
+@constant
+def _calc_claim(_sender: address, _token: address) -> (int128, int128, uint256):
     _token_epoch: int128 = self.token_epoch[_token]
     earned: uint256 = 0
     max_token_cursor: int128 = self.token_epoch[_token]
-    max_user_cursor: int128 = self.user_epoch[msg.sender]
-    cursor_t: int128 = self.user_token_cursor_t[msg.sender][_token]
-    cursor_u: int128 = self.user_token_cursor_u[msg.sender][_token]
-    epoch_user: int128 = self.user_epochs[msg.sender][cursor_u]
+    max_user_cursor: int128 = self.user_epoch[_sender]
+    cursor_t: int128 = self.user_token_cursor_t[_sender][_token]
+    cursor_u: int128 = self.user_token_cursor_u[_sender][_token]
+    epoch_user: int128 = self.user_epochs[_sender][cursor_u]
     epoch_token: int128 = self.token_epochs[_token][cursor_t]
     rate: uint256 = 0
     old_rate_cursor: int128 = -1
@@ -263,11 +256,11 @@ def claim(_token: address):
         if epoch_user > 0:
             if epoch_user < epoch_token:
                 if cursor_u != old_balance_cursor:
-                    user_balance = self.user_balances[msg.sender][cursor_u]
+                    user_balance = self.user_balances[_sender][cursor_u]
                     old_balance_cursor = cursor_u
             else:
                 if cursor_u-1 != old_balance_cursor:
-                    user_balance = self.user_balances[msg.sender][cursor_u-1]
+                    user_balance = self.user_balances[_sender][cursor_u-1]
                     old_balance_cursor = cursor_u - 1
 
         # measure integral1 here
@@ -283,7 +276,7 @@ def claim(_token: address):
         else:
             if epoch_user < epoch_token:
                 cursor_u += 1
-                epoch_user = self.user_epochs[msg.sender][cursor_u]
+                epoch_user = self.user_epochs[_sender][cursor_u]
             else:
                 if cursor_t >= max_token_cursor:
                     finish_loop = True
@@ -303,6 +296,25 @@ def claim(_token: address):
 
         if finish_loop:
             break
+
+    return cursor_t, cursor_u, earned
+
+
+@public
+@nonreentrant('lock')
+def claim(_token: address):
+    """
+    @dev Claim all the airdropped tokens
+    @param _token Token address
+    """
+    assert self.token_epoch[_token] > 0, "Airdrops in this token are not yet received"
+    assert self.user_epoch[msg.sender] > 0, "User must have some deposits"
+    self._checkpoint([msg.sender, ZERO_ADDRESS])
+
+    cursor_t: int128 = 0
+    cursor_u: int128 = 0
+    earned: uint256 = 0
+    cursor_t, cursor_u, earned = self._calc_claim(msg.sender, _token)
 
     # Save state
     self.user_token_cursor_t[msg.sender][_token] = cursor_t
