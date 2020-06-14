@@ -206,8 +206,8 @@ def deposit(_value: uint256):
     @dev Deposit tokens to escrow
     @param _value Amount to deposit
     """
-    self._mint(msg.sender, _value)
     ERC20(self.wrapped_token).transferFrom(msg.sender, self, _value)
+    self._mint(msg.sender, _value)
 
 
 @public
