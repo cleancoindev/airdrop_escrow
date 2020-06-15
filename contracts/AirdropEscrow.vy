@@ -182,39 +182,6 @@ def approve(_spender : address, _value : uint256) -> bool:
     return True
 
 
-@private
-def _mint(_to: address, _value: uint256):
-    """
-    @dev Mint an amount of the token and assigns it to an account.
-         This encapsulates the modification of balances such that the
-         proper events are emitted.
-    @param _to The account that will receive the created tokens.
-    @param _value The amount that will be created.
-    """
-    if _value != 0:
-        self.totalSupply += _value
-        self.balanceOf[_to] += _value
-        if not self.failsafe:
-            self._checkpoint([_to, ZERO_ADDRESS])
-    log.Transfer(ZERO_ADDRESS, _to, _value)
-
-
-@private
-def _burn(_to: address, _value: uint256):
-    """
-    @dev Internal function that burns an amount of the token of a given
-         account.
-    @param _to The account whose tokens will be burned.
-    @param _value The amount that will be burned.
-    """
-    if _value != 0:
-        self.totalSupply -= _value
-        self.balanceOf[_to] -= _value
-        if not self.failsafe:
-            self._checkpoint([_to, ZERO_ADDRESS])
-    log.Transfer(_to, ZERO_ADDRESS, _value)
-
-
 @public
 @nonreentrant('lock')
 def deposit(_value: uint256):
@@ -223,7 +190,12 @@ def deposit(_value: uint256):
     @param _value Amount to deposit
     """
     ERC20(self.wrapped_token).transferFrom(msg.sender, self, _value)
-    self._mint(msg.sender, _value)
+    if _value != 0:
+        self.totalSupply += _value
+        self.balanceOf[msg.sender] += _value
+        if not self.failsafe:
+            self._checkpoint([msg.sender, ZERO_ADDRESS])
+    log.Transfer(ZERO_ADDRESS, msg.sender, _value)
 
 
 @public
@@ -233,8 +205,13 @@ def withdraw(_value: uint256):
     @dev Withdraw tokens from the escrow
     @param _value Amount to withdraw
     """
-    self._burn(msg.sender, _value)
+    if _value != 0:
+        self.totalSupply -= _value
+        self.balanceOf[msg.sender] -= _value
+        if not self.failsafe:
+            self._checkpoint([msg.sender, ZERO_ADDRESS])
     ERC20(self.wrapped_token).transfer(msg.sender, _value)
+    log.Transfer(msg.sender, ZERO_ADDRESS, _value)
 
 
 @private
