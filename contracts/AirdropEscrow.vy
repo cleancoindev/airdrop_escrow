@@ -193,7 +193,6 @@ def _mint(_to: address, _value: uint256):
     @param _to The account that will receive the created tokens.
     @param _value The amount that will be created.
     """
-    assert _to != ZERO_ADDRESS
     if _value != 0:
         self.totalSupply += _value
         self.balanceOf[_to] += _value
@@ -210,7 +209,6 @@ def _burn(_to: address, _value: uint256):
     @param _to The account whose tokens will be burned.
     @param _value The amount that will be burned.
     """
-    assert _to != ZERO_ADDRESS
     if _value != 0:
         self.totalSupply -= _value
         self.balanceOf[_to] -= _value
