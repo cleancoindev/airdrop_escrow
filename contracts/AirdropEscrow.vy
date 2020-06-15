@@ -136,10 +136,11 @@ def transfer(_to : address, _value : uint256) -> bool:
     """
     # NOTE: vyper does not allow underflows
     #       so the following subtraction would revert on insufficient balance
-    self.balanceOf[msg.sender] -= _value
-    self.balanceOf[_to] += _value
-    if not self.failsafe:
-        self._checkpoint([msg.sender, _to])
+    if _value != 0:
+        self.balanceOf[msg.sender] -= _value
+        self.balanceOf[_to] += _value
+        if not self.failsafe:
+            self._checkpoint([msg.sender, _to])
     log.Transfer(msg.sender, _to, _value)
     return True
 
@@ -156,11 +157,12 @@ def transferFrom(_from : address, _to : address, _value : uint256) -> bool:
     """
     # NOTE: vyper does not allow underflows
     #       so the following subtraction would revert on insufficient balance
-    self.balanceOf[_from] -= _value
-    self.balanceOf[_to] += _value
-    self.allowances[_from][msg.sender] -= _value
-    if not self.failsafe:
-        self._checkpoint([_from, _to])
+    if _value != 0:
+        self.balanceOf[_from] -= _value
+        self.balanceOf[_to] += _value
+        self.allowances[_from][msg.sender] -= _value
+        if not self.failsafe:
+            self._checkpoint([_from, _to])
     log.Transfer(_from, _to, _value)
     return True
 
@@ -192,10 +194,11 @@ def _mint(_to: address, _value: uint256):
     @param _value The amount that will be created.
     """
     assert _to != ZERO_ADDRESS
-    self.totalSupply += _value
-    self.balanceOf[_to] += _value
-    if not self.failsafe:
-        self._checkpoint([_to, ZERO_ADDRESS])
+    if _value != 0:
+        self.totalSupply += _value
+        self.balanceOf[_to] += _value
+        if not self.failsafe:
+            self._checkpoint([_to, ZERO_ADDRESS])
     log.Transfer(ZERO_ADDRESS, _to, _value)
 
 
@@ -208,10 +211,11 @@ def _burn(_to: address, _value: uint256):
     @param _value The amount that will be burned.
     """
     assert _to != ZERO_ADDRESS
-    self.totalSupply -= _value
-    self.balanceOf[_to] -= _value
-    if not self.failsafe:
-        self._checkpoint([_to, ZERO_ADDRESS])
+    if _value != 0:
+        self.totalSupply -= _value
+        self.balanceOf[_to] -= _value
+        if not self.failsafe:
+            self._checkpoint([_to, ZERO_ADDRESS])
     log.Transfer(_to, ZERO_ADDRESS, _value)
 
 
