@@ -9,6 +9,7 @@ implements: ERC20
 
 Transfer: event({_from: indexed(address), _to: indexed(address), _value: uint256})
 Approval: event({_owner: indexed(address), _spender: indexed(address), _value: uint256})
+Claim: event({_owner: indexed(address), _token: indexed(address), _value: uint256})
 
 name: public(string[64])
 symbol: public(string[32])
@@ -345,7 +346,7 @@ def claim(_token: address):
     if earned > 0:
         self.claimed_token_of[msg.sender][_token] += earned
         ERC20(_token).transfer(msg.sender, earned)
-        # XXX Event
+        log.Claim(msg.sender, _token, earned)
 
 
 @public
