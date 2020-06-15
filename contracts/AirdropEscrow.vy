@@ -27,7 +27,10 @@ wrapped_token: public(address)
 airdropped_tokens: public(address[255])
 n_tokens: int128
 redeemed_token_balances: map(address, uint256)
-external_escrows: public(address[255])  # External untransferrable deposit contracts which have balanceOf TODO
+
+# External untransferrable deposit contracts which have balanceOf TODO
+# Everyone can claim for those
+external_escrows: public(map(address, bool))
 
 epoch: public(int128)  # Epoch where anything at all changes
 user_epoch: public(map(address, int128))  # User epoch number
@@ -324,29 +327,35 @@ def balanceOfAirdrop(_token: address, _user: address) -> uint256:
 
 @public
 @nonreentrant('lock')
-def claim(_token: address):
+def claim(_token: address, _for: address = ZERO_ADDRESS):
     """
     @dev Claim all the airdropped tokens
     @param _token Token address
+    @param _for Claim for the escrow (everyone can): needed for external escrows
     """
+    _user: address = msg.sender
+    if _for != ZERO_ADDRESS:
+        assert self.external_escrows[_for]
+        _user = _for
+
     assert self.token_epoch[_token] > 0, "Airdrops in this token are not yet received"
-    assert self.user_epoch[msg.sender] > 0, "User must have some deposits"
-    self._checkpoint([msg.sender, ZERO_ADDRESS])
+    assert self.user_epoch[_user] > 0, "User must have some deposits"
+    self._checkpoint([_user, ZERO_ADDRESS])
 
     cursor_t: int128 = 0
     cursor_u: int128 = 0
     earned: uint256 = 0
-    cursor_t, cursor_u, earned = self._calc_claim(msg.sender, _token)
+    cursor_t, cursor_u, earned = self._calc_claim(_user, _token)
 
     # Save state
-    self.user_token_cursor_t[msg.sender][_token] = cursor_t
-    self.user_token_cursor_u[msg.sender][_token] = cursor_u
+    self.user_token_cursor_t[_user][_token] = cursor_t
+    self.user_token_cursor_u[_user][_token] = cursor_u
 
     # Transfer tokens
     if earned > 0:
-        self.claimed_token_of[msg.sender][_token] += earned
-        ERC20(_token).transfer(msg.sender, earned)
-        log.Claim(msg.sender, _token, earned)
+        self.claimed_token_of[_user][_token] += earned
+        ERC20(_token).transfer(_user, earned)
+        log.Claim(_user, _token, earned)
 
 
 @public
@@ -373,6 +382,12 @@ def add_token(addr: address):
 
 
 @public
+def toggle_external_escrow(addr: address):
+    assert msg.sender == self.admin and addr != ZERO_ADDRESS
+    self.external_escrows[addr] = not self.external_escrows[addr]
+
+
+@public
 def remove_token(i: int128):
     assert msg.sender == self.admin
     self._checkpoint()
@@ -382,7 +397,6 @@ def remove_token(i: int128):
     self.n_tokens = n
 
 
-# XXX recheck events
 # XXX add checking if this token is deposited in a balanceOf escrow itself
-# XXX claim from the pool at checkpoint before checking our balanceOf
+# XXX clain from pool
 # XXX TODO tests
