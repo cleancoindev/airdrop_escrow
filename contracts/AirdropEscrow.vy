@@ -366,7 +366,7 @@ def claim(_token: address, _for: address = ZERO_ADDRESS):
     # Transfer tokens
     if earned > 0:
         self.claimed_token_of[_user][_token] += earned
-        ERC20(_token).transfer(_user, earned)
+        assert_modifiable(ERC20(_token).transfer(_user, earned))
         log.Claim(_user, _token, earned)
 
 
