@@ -372,19 +372,19 @@ def claim(_token: address, _for: address = ZERO_ADDRESS):
 
 @public
 def set_admin(_admin: address):
-    assert msg.sender == self.admin
+    assert msg.sender == self.admin  # dev: admin only
     self.admin = _admin
 
 
 @public
 def toggle_failsafe():
-    assert msg.sender == self.admin
+    assert msg.sender == self.admin  # dev: admin only
     self.failsafe = not self.failsafe
 
 
 @public
 def add_token(addr: address, pool: address = ZERO_ADDRESS):
-    assert msg.sender == self.admin
+    assert msg.sender == self.admin  # dev: admin only
     assert self.token_epoch[addr] == 0
     self._checkpoint()
     n: int128 = self.n_tokens
@@ -397,13 +397,14 @@ def add_token(addr: address, pool: address = ZERO_ADDRESS):
 
 @public
 def toggle_external_escrow(addr: address):
-    assert msg.sender == self.admin and addr != ZERO_ADDRESS
+    assert msg.sender == self.admin  # dev: admin only
+    assert addr != ZERO_ADDRESS  # dev: zero address
     self.external_escrows[addr] = not self.external_escrows[addr]
 
 
 @public
 def remove_token(i: int128):
-    assert msg.sender == self.admin
+    assert msg.sender == self.admin  # dev: admin only
     self._checkpoint()
     n: int128 = self.n_tokens - 1
     self.airdropped_tokens[i] = self.airdropped_tokens[n]
