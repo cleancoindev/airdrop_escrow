@@ -1,0 +1,2 @@
+reports:
+  exclude_paths: contracts/testing/*
