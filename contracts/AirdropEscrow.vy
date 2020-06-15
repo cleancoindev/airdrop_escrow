@@ -5,6 +5,10 @@ contract FullERC20:
     def decimals() -> uint256: constant
 
 
+contract Curve:
+    def claim_airdrop(addr: address, value: uint256): modifying
+
+
 implements: ERC20
 
 Transfer: event({_from: indexed(address), _to: indexed(address), _value: uint256})
@@ -25,10 +29,11 @@ failsafe: public(bool)
 
 wrapped_token: public(address)
 airdropped_tokens: public(address[255])
+token_to_pool: public(map(address, address))
 n_tokens: int128
 redeemed_token_balances: map(address, uint256)
 
-# External untransferrable deposit contracts which have balanceOf TODO
+# External untransferrable deposit contracts which have balanceOf
 # Everyone can claim for those
 external_escrows: public(map(address, bool))
 
@@ -98,6 +103,11 @@ def _checkpoint(addrs: address[2] = [ZERO_ADDRESS,ZERO_ADDRESS]):
     for token in self.airdropped_tokens:
         if token == ZERO_ADDRESS:
             break
+        pool: address = self.token_to_pool[token]
+        if pool != ZERO_ADDRESS:
+            _value: uint256 = ERC20(token).balanceOf(pool)
+            if _value > 0:
+                Curve(pool).claim_airdrop(token, _value)
         _token_epoch: int128 = self.token_epoch[token]
         _prev_balance: uint256 = self.token_funded_balances[token][_token_epoch]
         _balance: uint256 = ERC20(token).balanceOf(self)
@@ -371,7 +381,7 @@ def toggle_failsafe():
 
 
 @public
-def add_token(addr: address):
+def add_token(addr: address, pool: address = ZERO_ADDRESS):
     assert msg.sender == self.admin
     assert self.token_epoch[addr] == 0
     self._checkpoint()
@@ -379,6 +389,8 @@ def add_token(addr: address):
     self.airdropped_tokens[n] = addr
     self.n_tokens = n + 1
     self.token_epochs[addr][0] = self.epoch
+    if pool != ZERO_ADDRESS:
+        self.token_to_pool[addr] = pool
 
 
 @public
@@ -397,6 +409,5 @@ def remove_token(i: int128):
     self.n_tokens = n
 
 
-# XXX add checking if this token is deposited in a balanceOf escrow itself
-# XXX clain from pool
+# XXX claim from pool
 # XXX TODO tests
