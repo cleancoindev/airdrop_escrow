@@ -83,11 +83,11 @@ def _checkpoint(addrs: address[2] = [ZERO_ADDRESS,ZERO_ADDRESS]):
     _time : uint256 = as_unitless_number(block.timestamp)
 
     # Save integral(dt / supply)
-    _integral_inv_supply: uint256 = self.integral_inv_supply[_epoch]
-    if _epoch > 0:
+    if _prev_supply != 0:
+        _integral_inv_supply: uint256 = self.integral_inv_supply[_epoch]
         _integral_inv_supply += 10 ** 36 * (_time - self.epoch_time[_epoch]) / _prev_supply
+        self.integral_inv_supply[_epoch + 1] = _integral_inv_supply
     _epoch += 1
-    self.integral_inv_supply[_epoch] = _integral_inv_supply
 
     # Save user balances over epochs
     # Zero epoch is always zero
@@ -114,6 +114,8 @@ def _checkpoint(addrs: address[2] = [ZERO_ADDRESS,ZERO_ADDRESS]):
         _balance += self.redeemed_token_balances[token]
         if _balance > _prev_balance:
             dt: uint256 = _time - self.epoch_time[self.token_epochs[token][_token_epoch]]
+            if dt == 0:
+                continue
             self.token_rates[token][_token_epoch] = (_balance - _prev_balance) / dt
             _token_epoch += 1
             self.token_epochs[token][_token_epoch] = _epoch
