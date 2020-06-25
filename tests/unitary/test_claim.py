@@ -14,6 +14,8 @@ def module_setup(accounts, escrow, lp_token, airdrop_token):
 def test_claim(accounts, escrow, airdrop_token, rpc):
     escrow.add_token(airdrop_token, {'from': accounts[0]})
     airdrop_token.transfer(escrow, 10**18, {'from': accounts[0]})
+    escrow.checkpoint()  # Now escrow is aware of tokens
+
 
     # TODO this tx triggers a checkpoint so that claim works - ideally the checkpoint
     # is handled within `add_token` or `claim` and we can remove it

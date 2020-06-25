@@ -225,28 +225,29 @@ def _calc_claim(_sender: address, _token: address, read_only: bool = False) -> (
     cursor_u: int128 = self.user_token_cursor_u[_sender][_token]
     epoch_user: int128 = self.user_epochs[_sender][cursor_u]
     epoch_token: int128 = self.token_epochs[_token][cursor_t]
-    rate: uint256 = 0
     user_balance: uint256 = 0
-    old_rate_cursor: int128 = -1
-    old_balance_cursor: int128 = -1
+    rate: uint256 = 0
     cursor_epoch: int128 = min(epoch_user, epoch_token)
     I0: uint256 = self.integral_inv_supply[cursor_epoch]
+
+    # Temporary variables needed to not re-read storage if we already have read at the cursor
+    old_rate_cursor: int128 = -1
+    old_balance_cursor: int128 = -1
+
     # zip-join epochs of two cursors
     # and updated earned on every point
-
     for i in range(500):
         # Rate for the current dt
         if epoch_user >= epoch_token:
             if old_rate_cursor != cursor_t:
                 rate = self.token_rates[_token][cursor_t]
-                old_rate_cursor = epoch_token
+                old_rate_cursor = cursor_t
         else:
             if old_rate_cursor != cursor_t-1 and cursor_t > 0:
                 rate = self.token_rates[_token][cursor_t-1]
                 old_rate_cursor = cursor_t - 1
 
         # Balance for the current dt
-        user_balance = 0  # Value for epoch_user == 0
         if epoch_user > 0:
             if epoch_user < epoch_token:
                 if cursor_u != old_balance_cursor:
@@ -297,6 +298,11 @@ def _calc_claim(_sender: address, _token: address, read_only: bool = False) -> (
         earned += ((dI * rate) / 10 ** 18) * user_balance / 10 ** 18
 
     return cursor_t, cursor_u, earned
+
+
+@public
+def checkpoint():
+    self._checkpoint()
 
 
 @public
