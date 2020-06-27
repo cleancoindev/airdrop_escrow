@@ -333,9 +333,9 @@ def claim(_token: address, _for: address = ZERO_ADDRESS):
         assert self.external_escrows[_for]
         _user = _for
 
-    assert self.token_epoch[_token] > 0, "Airdrops in this token are not yet received"
     assert self.user_epoch[_user] > 0, "User must have some deposits"
     self._checkpoint([_user, ZERO_ADDRESS])
+    assert self.token_epoch[_token] > 0, "Airdrops in this token are not yet received"
 
     cursor_t: int128 = 0
     cursor_u: int128 = 0

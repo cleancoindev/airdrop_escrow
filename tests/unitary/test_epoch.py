@@ -48,10 +48,11 @@ def test_remove_token(accounts, escrow, airdrop_token, epoch):
     assert escrow.epoch() == epoch + 2
 
 
-def test_claim(accounts, escrow, airdrop_token, epoch):
+def test_claim(rpc, accounts, escrow, airdrop_token, epoch):
     airdrop_token._mint_for_testing(10**18, {'from': accounts[0]})
     airdrop_token.transfer(escrow, 10**18, {'from': accounts[0]})
     escrow.add_token(airdrop_token, {'from': accounts[0]})
+    rpc.sleep(1)  # Need at least 1 second to have non-infinite rates
     escrow.claim(airdrop_token, {'from': accounts[0]})
 
     assert escrow.epoch() == epoch + 2
