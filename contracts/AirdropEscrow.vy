@@ -265,7 +265,7 @@ def _calc_claim(_sender: address, _token: address, read_only: bool = False) -> (
 
         finish_loop: bool = False
 
-        if cursor_u >= max_user_cursor:
+        if cursor_u >= max_user_cursor and (epoch_token >= epoch_user or cursor_t == max_token_cursor):
             # This is actually the current user checkpoint
             finish_loop = True
         else:
