@@ -294,7 +294,7 @@ def _calc_claim(_sender: address, _token: address, read_only: bool) -> (int128, 
 
         # earned += integral(user_balance / totalSupply * rate * dt)
         # arranged to prevent over- and underflows
-        earned += ((dI * rate) / 10 ** 18) * user_balance / 10 ** 18
+        earned += dI * rate * user_balance / 10 ** 36
 
         if finish_loop:
             break
@@ -302,7 +302,7 @@ def _calc_claim(_sender: address, _token: address, read_only: bool) -> (int128, 
     if read_only:
         dI: uint256 = (self.integral_inv_supply[self.epoch] - I0)
         dI += 10 ** 36 * (as_unitless_number(block.timestamp) - self.epoch_time[self.epoch]) / self.totalSupply
-        earned += ((dI * rate) / 10 ** 18) * user_balance / 10 ** 18
+        earned += dI * rate * user_balance / 10 ** 36
 
     return cursor_t, cursor_u, earned
 
