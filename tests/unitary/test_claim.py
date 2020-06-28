@@ -20,7 +20,6 @@ def test_claim(alice, bob, charlie, escrow, airdrop_token, rpc):
     # (otherwise funds register in the next epoch)
     rpc.sleep(1)
 
-    escrow.checkpoint()
     escrow.claim(airdrop_token, {'from': bob})
 
     assert airdrop_token.balanceOf(bob) == 10**18
@@ -50,7 +49,6 @@ def test_claim_multiple_accounts(alice, bob, charlie, rpc, escrow, airdrop_token
 
     rpc.sleep(1)
 
-    escrow.checkpoint()
     escrow.claim(airdrop_token, {'from': bob})
     escrow.claim(airdrop_token, {'from': charlie})
 
@@ -58,7 +56,53 @@ def test_claim_multiple_accounts(alice, bob, charlie, rpc, escrow, airdrop_token
     assert airdrop_token.balanceOf(charlie) == 10**18
 
 
-def test_claim_no_balance(alice, bob, charlie, escrow, airdrop_token):
+def test_claim_multiple_epochs(alice, bob, charlie, rpc, escrow, airdrop_token):
+    escrow.add_token(airdrop_token, {'from': alice})
+    airdrop_token.transfer(escrow, 10**18, {'from': alice})
+
+    rpc.sleep(1)
+    escrow.transfer(charlie, 5 * 10**17, {'from': bob})
+    escrow.transfer(bob, 10**17, {'from': charlie})
+
+    escrow.claim(airdrop_token, {'from': bob})
+    escrow.claim(airdrop_token, {'from': charlie})
+
+    assert airdrop_token.balanceOf(bob) == 10**18
+    assert airdrop_token.balanceOf(charlie) == 0
+
+
+def test_multiple_claims(alice, bob, rpc, escrow, airdrop_token):
+    escrow.add_token(airdrop_token, {'from': alice})
+    airdrop_token.transfer(escrow, 10**18, {'from': alice})
+
+    rpc.sleep(1)
+    escrow.claim(airdrop_token, {'from': bob})
+    airdrop_token.transfer(escrow, 10**18, {'from': alice})
+
+    rpc.sleep(86400 * 6)
+    escrow.checkpoint()
+    escrow.claim(airdrop_token, {'from': bob})
+
+    assert airdrop_token.balanceOf(bob) == 2 * 10**18
+
+
+def test_minimum_epoch_duration(alice, bob, charlie, rpc, escrow, airdrop_token):
+    escrow.add_token(airdrop_token, {'from': alice})
+    airdrop_token.transfer(escrow, 10**18, {'from': alice})
+
+    rpc.sleep(1)
+    escrow.claim(airdrop_token, {'from': bob})
+    airdrop_token.transfer(escrow, 10**18, {'from': alice})
+
+    # minimum epoch duration is 5 days, so the 2nd claim gets nothing
+    rpc.sleep(86400 * 5 - 10)
+    escrow.checkpoint()
+    escrow.claim(airdrop_token, {'from': bob})
+
+    assert airdrop_token.balanceOf(bob) == 10**18
+
+
+def test_no_balance(alice, bob, charlie, escrow, airdrop_token):
     airdrop_token.transfer(escrow, 10**18, {'from': alice})
     escrow.add_token(airdrop_token, {'from': alice})
 
@@ -66,7 +110,7 @@ def test_claim_no_balance(alice, bob, charlie, escrow, airdrop_token):
         escrow.claim(airdrop_token, {'from': charlie})
 
 
-def test_claim_no_airdrop(alice, bob, charlie, escrow, airdrop_token):
+def test_no_airdrop(alice, bob, charlie, escrow, airdrop_token):
     airdrop_token.transfer(escrow, 10**18, {'from': alice})
 
     with brownie.reverts("Airdrops in this token are not yet received"):
