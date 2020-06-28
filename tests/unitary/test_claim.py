@@ -5,7 +5,7 @@ ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 
 @pytest.fixture(scope="module", autouse=True)
-def module_setup(alice, bob, charlie, escrow, lp_token, airdrop_token):
+def module_setup(alice, bob, escrow, lp_token, airdrop_token):
     lp_token._mint_for_testing(10**24, {'from': bob})
     lp_token.approve(escrow, 10**24, {'from': bob})
     escrow.deposit(10**24, {'from': bob})
@@ -31,6 +31,26 @@ def test_claim_existing_balance(alice, bob, charlie, escrow, airdrop_token, rpc)
 
     rpc.sleep(1)
     escrow.withdraw(10**24, {'from': bob})
+
+    rpc.sleep(1)
+    escrow.claim(airdrop_token, {'from': bob})
+
+    assert airdrop_token.balanceOf(bob) == 10**18
+
+
+def test_claim_from_pool(rpc, alice, bob, escrow, airdrop_token, pool):
+    escrow.add_token(airdrop_token, pool, {'from': alice})
+    airdrop_token.transfer(pool, 10**18, {'from': alice})
+
+    rpc.sleep(1)
+    escrow.claim(airdrop_token, {'from': bob})
+
+    assert airdrop_token.balanceOf(bob) == 10**18
+
+
+def test_claim_from_pool_existing_balance(rpc, alice, bob, escrow, airdrop_token, pool):
+    airdrop_token.transfer(pool, 10**18, {'from': alice})
+    escrow.add_token(airdrop_token, pool, {'from': alice})
 
     rpc.sleep(1)
     escrow.claim(airdrop_token, {'from': bob})
