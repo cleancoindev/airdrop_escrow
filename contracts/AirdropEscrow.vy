@@ -27,6 +27,9 @@ allowances: map(address, map(address, uint256))
 admin: public(address)
 failsafe: public(bool)
 
+
+MIN_TOKEN_EPOCH_DURATION: constant(uint256) = 5 * 86400
+
 wrapped_token: public(address)
 airdropped_tokens: public(address[255])
 token_to_pool: public(map(address, address))
@@ -114,8 +117,12 @@ def _checkpoint(addrs: address[2] = [ZERO_ADDRESS,ZERO_ADDRESS]):
         _balance += self.redeemed_token_balances[token]
         if _balance > _prev_balance:
             dt: uint256 = _time - self.epoch_time[self.token_epochs[token][_token_epoch]]
-            if dt == 0:
-                continue
+            if _prev_balance == 0:  # Just the beginning
+                if dt == 0:
+                    continue
+            else:  # Need some min time between epochs
+                if dt < MIN_TOKEN_EPOCH_DURATION:
+                    continue
             self.token_rates[token][_token_epoch] = (_balance - _prev_balance) / dt
             _token_epoch += 1
             self.token_epochs[token][_token_epoch] = _epoch
