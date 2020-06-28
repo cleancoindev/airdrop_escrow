@@ -223,7 +223,7 @@ def withdraw(_value: uint256):
 
 @private
 @constant
-def _calc_claim(_sender: address, _token: address, read_only: bool = False) -> (int128, int128, uint256):
+def _calc_claim(_sender: address, _token: address, read_only: bool) -> (int128, int128, uint256):
     _token_epoch: int128 = self.token_epoch[_token]
     earned: uint256 = 0
     max_token_cursor: int128 = self.token_epoch[_token]
@@ -313,17 +313,20 @@ def checkpoint():
 
 
 @public
-@constant
 def balanceOfAirdrop(_token: address, _user: address) -> uint256:
     """
-    @dev _Approximate_ calculation of what amount can be claimed. Use for information only!
+    @notice Get an _approximate_ calculation of how many tokens may be claimed
+            by an address. This is for information only!
+        This method is set as modifying in order to update checkpoints, but is intended
+        to be accessed via call, not transaction.
+    @param _token Token address
+    @param _user Claim address
+    @returns Approximate calculation of claimable amount
     """
-    if self.token_epoch[_token] > 0 or self.user_epoch[msg.sender] > 0:
+    if self.token_epoch[_token] == 0 or self.user_epoch[_user] == 0:
         return 0
-    cursor_t: int128 = 0
-    cursor_u: int128 = 0
-    earned: uint256 = 0
-    cursor_t, cursor_u, earned = self._calc_claim(_user, _token, True)
+    self._checkpoint([_user, ZERO_ADDRESS])
+    earned: uint256 = self._calc_claim(_user, _token, True)[2]
     return earned
 
 
@@ -347,7 +350,7 @@ def claim(_token: address, _for: address = ZERO_ADDRESS):
     cursor_t: int128 = 0
     cursor_u: int128 = 0
     earned: uint256 = 0
-    cursor_t, cursor_u, earned = self._calc_claim(_user, _token)
+    cursor_t, cursor_u, earned = self._calc_claim(_user, _token, False)
 
     # Save state
     self.user_token_cursor_t[_user][_token] = cursor_t
