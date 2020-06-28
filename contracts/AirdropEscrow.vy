@@ -321,7 +321,7 @@ def balanceOfAirdrop(_token: address, _user: address) -> uint256:
         to be accessed via call, not transaction.
     @param _token Token address
     @param _user Claim address
-    @returns Approximate calculation of claimable amount
+    @return Approximate calculation of claimable amount
     """
     if self.token_epoch[_token] == 0 or self.user_epoch[_user] == 0:
         return 0

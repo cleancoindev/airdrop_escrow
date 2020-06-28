@@ -16,6 +16,7 @@ def test_airdrop_balance(alice, bob, escrow, airdrop_token, rpc, lp_token):
     escrow.add_token(airdrop_token, {'from': alice})
 
     rpc.sleep(1)
+    escrow.checkpoint()
     assert escrow.balanceOfAirdrop.call(airdrop_token, bob) == 10 ** 18
 
     escrow.claim(airdrop_token, {'from': bob})
