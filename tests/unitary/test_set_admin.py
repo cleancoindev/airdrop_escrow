@@ -1,23 +1,23 @@
 import brownie
 
 
-def test_deployer_is_initial_admin(accounts, escrow):
-    assert escrow.admin() == accounts[0]
+def test_deployer_is_initial_admin(alice, escrow):
+    assert escrow.admin() == alice
 
 
-def test_set_admin(accounts, escrow):
-    escrow.set_admin(accounts[1], {'from': accounts[0]})
+def test_set_admin(alice, bob, escrow):
+    escrow.set_admin(bob, {'from': alice})
 
-    assert escrow.admin() == accounts[1]
-
-
-def test_set_twice(accounts, escrow):
-    escrow.set_admin(accounts[1], {'from': accounts[0]})
-    escrow.set_admin(accounts[2], {'from': accounts[1]})
-
-    assert escrow.admin() == accounts[2]
+    assert escrow.admin() == bob
 
 
-def test_admin_only(accounts, escrow):
+def test_set_twice(alice, bob, charlie, escrow):
+    escrow.set_admin(bob, {'from': alice})
+    escrow.set_admin(charlie, {'from': bob})
+
+    assert escrow.admin() == charlie
+
+
+def test_admin_only(bob, escrow):
     with brownie.reverts("dev: admin only"):
-        escrow.set_admin(accounts[1], {'from': accounts[1]})
+        escrow.set_admin(bob, {'from': bob})
