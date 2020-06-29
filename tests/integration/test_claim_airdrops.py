@@ -1,6 +1,6 @@
 import pytest
 from brownie.test import given, strategy
-from hypothesis import settings
+from hypothesis import settings, Phase
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -22,6 +22,49 @@ def airdrop_tokens(ERC20_Revert, accounts, airdrop_token, escrow):
         token_list.append(token)
 
     yield token_list
+
+
+@given(
+    st_deposits=strategy("uint256[3]", min_value=10**17, max_value=10**21, unique=True),
+    st_airdrops=strategy("uint256[10]", min_value=10**10, max_value=10**18, unique=True)
+)
+@settings(max_examples=10, phases=[Phase.generate, Phase.target])
+def test_many_airdrops_single_claim(accounts, rpc, escrow, airdrop_token, st_deposits, st_airdrops):
+    """
+    Verify correct claim amount from a single claim of many airdrops.
+    """
+
+    # initial deposits of `lp_token`
+    total_deposited = sum(st_deposits)
+    for i in range(3):
+        escrow.deposit(st_deposits[i], {'from': accounts[i]})
+
+    # ensure claims are in a new token epoch
+    rpc.sleep(86400 * 7)
+
+    # perform 10 airdrops
+    for amount in st_airdrops:
+        rpc.sleep(14)
+        airdrop_token.transfer(escrow, amount, {'from': accounts[3]})
+        escrow.checkpoint()
+
+    # ensure claims are in a new token epoch
+    rpc.sleep(86400 * 7)
+
+    # claim the tokens
+    received = [0, 0, 0]
+    for i in range(3):
+        escrow.claim(airdrop_token, {'from': accounts[i]})
+        received[i] = airdrop_token.balanceOf(accounts[i])
+
+    # total dust should be less than 1%
+    assert 0.99 < sum(received) / sum(st_airdrops) <= 1
+
+    # actual amounts received should be less than 1% off expected amounts
+    for i in range(3):
+        expected_pct = st_deposits[i] / total_deposited
+        received_pct = received[i] / sum(received)
+        assert abs(expected_pct - received_pct) < 0.01
 
 
 @given(
@@ -60,45 +103,6 @@ def test_many_airdrops_many_claims(accounts, rpc, escrow, airdrop_token, st_depo
             expected_pct = st_deposits[i] / total_deposited
             received_pct = received[i] / sum(received)
             assert abs(expected_pct - received_pct) < 0.001
-
-
-@given(
-    st_deposits=strategy("uint256[3]", min_value=10**17, max_value=10**21, unique=True),
-    st_airdrops=strategy("uint256[10]", min_value=10**10, max_value=10**18, unique=True)
-)
-def test_many_airdrops_single_claim(accounts, rpc, escrow, airdrop_token, st_deposits, st_airdrops):
-    """
-    Verify correct claim amount from a single claim of many airdrops.
-    """
-
-    # initial deposits of `lp_token`
-    total_deposited = sum(st_deposits)
-    for i in range(3):
-        escrow.deposit(st_deposits[i], {'from': accounts[i]})
-
-    # perform 10 airdrops
-    for amount in st_airdrops:
-        rpc.sleep(1)
-        airdrop_token.transfer(escrow, amount, {'from': accounts[3]})
-        escrow.checkpoint()
-
-    # ensure claims are in a new token epoch
-    rpc.sleep(86400 * 7)
-
-    # claim the tokens
-    received = [0, 0, 0]
-    for i in range(3):
-        escrow.claim(airdrop_token, {'from': accounts[i]})
-        received[i] = airdrop_token.balanceOf(accounts[i])
-
-    # total dust should be less than 1%
-    assert 0.99 < sum(received) / sum(st_airdrops) <= 1
-
-    # actual amounts received should be less than 1% off expected amounts
-    for i in range(3):
-        expected_pct = st_deposits[i] / total_deposited
-        received_pct = received[i] / sum(received)
-        assert abs(expected_pct - received_pct) < 0.01
 
 
 @given(
