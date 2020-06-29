@@ -103,7 +103,8 @@ def test_multiple_claims(alice, bob, rpc, escrow, airdrop_token):
     escrow.checkpoint()
     escrow.claim(airdrop_token, {'from': bob})
 
-    assert airdrop_token.balanceOf(bob) == 2 * 10**18
+    # amount received may be off by up to 0.1%
+    assert (2 * 10**18) * 0.999 < airdrop_token.balanceOf(bob) <= 2 * 10**18
 
 
 def test_minimum_epoch_duration(alice, bob, charlie, rpc, escrow, airdrop_token):
