@@ -80,7 +80,7 @@ def allowance(_owner : address, _spender : address) -> uint256:
 
 
 @private
-def _checkpoint(addrs: address[2] = [ZERO_ADDRESS,ZERO_ADDRESS]):
+def _checkpoint(addrs: address[2]):
     _epoch: int128 = self.epoch
     _prev_supply: uint256 = self.prev_totalSupply
     _time : uint256 = as_unitless_number(block.timestamp)
@@ -309,7 +309,7 @@ def _calc_claim(_sender: address, _token: address, read_only: bool) -> (int128, 
 
 @public
 def checkpoint():
-    self._checkpoint()
+    self._checkpoint([ZERO_ADDRESS,ZERO_ADDRESS])
 
 
 @public
@@ -380,7 +380,7 @@ def toggle_failsafe():
 def add_token(addr: address, pool: address = ZERO_ADDRESS):
     assert msg.sender == self.admin  # dev: admin only
     assert self.token_epoch[addr] == 0
-    self._checkpoint()
+    self._checkpoint([ZERO_ADDRESS,ZERO_ADDRESS])
     n: int128 = self.n_tokens
     self.airdropped_tokens[n] = addr
     self.n_tokens = n + 1
@@ -399,7 +399,7 @@ def toggle_external_escrow(addr: address):
 @public
 def remove_token(i: int128):
     assert msg.sender == self.admin  # dev: admin only
-    self._checkpoint()
+    self._checkpoint([ZERO_ADDRESS,ZERO_ADDRESS])
     n: int128 = self.n_tokens - 1
     self.airdropped_tokens[i] = self.airdropped_tokens[n]
     self.airdropped_tokens[n] = ZERO_ADDRESS
