@@ -4,9 +4,9 @@ from brownie import compile_source
 POOL_MOCK = """
 from vyper.interfaces import ERC20
 
-@public
-def claim_airdrop(addr: address, value: uint256):
-    ERC20(addr).transfer(msg.sender, value)
+@external
+def claim_airdrop(_addr: address, _value: uint256):
+    ERC20(_addr).transfer(msg.sender, _value)
     """
 
 
