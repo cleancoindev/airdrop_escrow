@@ -207,7 +207,18 @@ def deposit(_value: uint256):
     @dev Deposit tokens to escrow
     @param _value Amount to deposit
     """
-    ERC20(self.wrapped_token).transferFrom(msg.sender, self, _value)
+    _response: Bytes[32] = raw_call(
+            self.wrapped_token,
+            concat(
+                method_id("transferFrom(address,address,uint256)"),
+                convert(msg.sender, bytes32),
+                convert(self, bytes32),
+                convert(_value, bytes32)
+            ),
+            max_outsize=32
+        )
+    if len(_response) != 0:
+        assert convert(_response, bool)
     if _value != 0:
         self.totalSupply += _value
         self.balanceOf[msg.sender] += _value
@@ -228,7 +239,18 @@ def withdraw(_value: uint256):
         self.balanceOf[msg.sender] -= _value
         if not self.failsafe:
             self._checkpoint([msg.sender, ZERO_ADDRESS])
-    ERC20(self.wrapped_token).transfer(msg.sender, _value)
+    _response: Bytes[32] = raw_call(
+            self.wrapped_token,
+            concat(
+                method_id("transfer(address,uint256)"),
+                convert(msg.sender, bytes32),
+                convert(_value, bytes32),
+            ),
+            max_outsize=32
+        )
+    if len(_response) != 0:
+        assert convert(_response, bool)
+
     log Transfer(msg.sender, ZERO_ADDRESS, _value)
 
 
@@ -371,7 +393,17 @@ def claim(_token: address, _for: address = ZERO_ADDRESS):
     if earned > 0:
         self.claimed_token_of[_user][_token] += earned
         self.redeemed_token_balances[_token] += earned
-        assert ERC20(_token).transfer(_user, earned)
+        _response: Bytes[32] = raw_call(
+            _token,
+            concat(
+                method_id("transfer(address,uint256)"),
+                convert(_user, bytes32),
+                convert(earned, bytes32)
+            ),
+            max_outsize=32
+        )
+        if len(_response) != 0:
+            assert convert(_response, bool)
         log Claim(_user, _token, earned)
 
 
