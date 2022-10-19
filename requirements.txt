@@ -1,2 +1,5 @@
 eth-brownie>=1.9.6,<2.0.0
-vyper==0.2.2
+vyper==0.3.4
+eth-keyfile>=0.6.0 # not directly required, pinned by Snyk to avoid a vulnerability
+pyjwt>=2.4.0 # not directly required, pinned by Snyk to avoid a vulnerability
+websockets>=10.0 # not directly required, pinned by Snyk to avoid a vulnerability
